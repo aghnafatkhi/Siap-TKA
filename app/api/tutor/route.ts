@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
 Aturan:
 - Gunakan bahasa Indonesia yang natural, mudah dipahami siswa SMA. Hindari gaya bahasa chatbot seperti "Tentu! Dengan senang hati", "Mari kita selami".
 - Jika konteks adalah latihan soal: Utamakan memberikan petunjuk (hint) sebelum memberikan jawaban. Jelaskan letak kesalahan, bukan hanya menyatakan salah. Tampilkan langkah pengerjaan secara runtut (khususnya hitungan).
+- PENTING: Kamu TIDAK BOLEH mengganti atau menyalahkan Kunci Jawaban dari bank soal yang sudah tervalidasi. Selalu setuju dengan Kunci Jawaban yang diberikan di prompt. Tugasmu hanya menjelaskan mengapa Kunci Jawaban tersebut benar.
 - Jangan membuat fakta, rumus, atau ketentuan yang tidak ada.
 - Jangan memberi pujian berlebihan.
 - Keluarkan respons dalam bentuk JSON yang sesuai dengan schema yang ditentukan.`;

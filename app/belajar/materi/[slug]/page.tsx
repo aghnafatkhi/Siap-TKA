@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ChevronRight, ChevronLeft, CheckCircle2, MessageCircle, AlertCircle, BookOpen } from 'lucide-react';
 import Link from 'next/link';
@@ -39,7 +39,52 @@ export default function SesiBelajar() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
-  const [startTime] = useState<number>(() => Date.now());
+
+  // Active time tracking
+  const activeTimeMs = useRef(0);
+  const lastActiveTimestamp = useRef(Date.now());
+  const isTracking = useRef(true);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        lastActiveTimestamp.current = Date.now();
+        isTracking.current = true;
+      } else {
+        if (isTracking.current) {
+          activeTimeMs.current += Date.now() - lastActiveTimestamp.current;
+          isTracking.current = false;
+        }
+      }
+    };
+
+    const handleBlur = () => {
+      if (isTracking.current) {
+        activeTimeMs.current += Date.now() - lastActiveTimestamp.current;
+        isTracking.current = false;
+      }
+    };
+
+    const handleFocus = () => {
+      if (!isTracking.current) {
+        lastActiveTimestamp.current = Date.now();
+        isTracking.current = true;
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+      if (isTracking.current) {
+        activeTimeMs.current += Date.now() - lastActiveTimestamp.current;
+      }
+    };
+  }, []);
 
   // Tutor AI state
   const [tutorOpen, setTutorOpen] = useState(false);
@@ -88,7 +133,12 @@ export default function SesiBelajar() {
       setStep(3); // Go to summary
       
       // Calculate minutes spent
-      const minutesSpent = Math.max(1, Math.round((Date.now() - startTime) / 60000));
+      if (isTracking.current) {
+        activeTimeMs.current += Date.now() - lastActiveTimestamp.current;
+        lastActiveTimestamp.current = Date.now(); // reset for next tracking if needed
+      }
+      
+      const minutesSpent = Math.max(1, Math.round(activeTimeMs.current / 60000));
       completeLesson(lessonData.id, minutesSpent);
     }
   };

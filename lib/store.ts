@@ -17,10 +17,22 @@ export interface MistakeLog {
   timestamp: string;
 }
 
+export interface DiagnosticResult {
+  totalCorrect: number;
+  totalIncorrect: number;
+  accuracyPerSubject: Record<string, number>;
+  accuracyPerCompetency: Record<string, number>;
+  wrongQuestions: string[];
+  prioritizedTopics: string[];
+  durationMinutes: number;
+  date: string;
+}
+
 export interface ProgressState {
   dailyProgressMinutes: number;
   lastStudyDate: string;
   diagnosticCompleted: boolean;
+  diagnosticResult: DiagnosticResult | null;
   completedLessons: string[];
   mistakes: MistakeLog[];
   streakDays: number;
@@ -33,7 +45,7 @@ interface AppState {
   setProfile: (profile: UserProfile) => void;
   updateProgress: (minutes: number) => void;
   resetDailyProgressIfNeeded: () => void;
-  completeDiagnostic: () => void;
+  completeDiagnostic: (result?: DiagnosticResult) => void;
   completeLesson: (lessonId: string, minutesSpent: number) => void;
   logMistake: (mistake: Omit<MistakeLog, 'timestamp'>) => void;
   completeTryout: (result: any) => void;
@@ -44,6 +56,7 @@ const defaultProgress: ProgressState = {
   dailyProgressMinutes: 0,
   lastStudyDate: new Date().toISOString().split('T')[0],
   diagnosticCompleted: false,
+  diagnosticResult: null,
   completedLessons: [],
   mistakes: [],
   streakDays: 0,
@@ -98,8 +111,8 @@ export const useAppStore = create<AppState>()(
           });
         }
       },
-      completeDiagnostic: () => set((state) => ({
-        progress: { ...state.progress, diagnosticCompleted: true }
+      completeDiagnostic: (result) => set((state) => ({
+        progress: { ...state.progress, diagnosticCompleted: true, diagnosticResult: result || null }
       })),
       completeLesson: (lessonId, minutesSpent) => {
         get().updateProgress(minutesSpent);

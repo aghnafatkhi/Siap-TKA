@@ -2,8 +2,9 @@
 
 import { useAppStore } from '@/lib/store';
 import { calculateDaysRemaining } from '@/lib/utils';
-import { ChevronRight, Target, Clock, BookOpen, AlertCircle } from 'lucide-react';
+import { ChevronRight, Target, Clock, BookOpen, AlertCircle, FileEdit } from 'lucide-react';
 import Link from 'next/link';
+import { SUBJECTS, TOPICS } from '@/lib/data';
 
 export default function HariIni() {
   const { profile, progress } = useAppStore();
@@ -17,18 +18,56 @@ export default function HariIni() {
     100
   );
 
-  // Group mistakes by topic for recommendations
-  const mistakesByTopic = (progress.mistakes || []).reduce((acc, m) => {
-    if (!acc[m.topicName]) {
-      acc[m.topicName] = { lessonId: m.lessonId, count: 0 };
-    }
-    acc[m.topicName].count += 1;
-    return acc;
-  }, {} as Record<string, { lessonId: string, count: number }>);
+  // Determine what to recommend
+  let recommendTitle = "Rekomendasi Belajar";
+  let recommendText = "Belajar atau latihan dulu untuk melihat bagian yang perlu diperbaiki.";
+  let recommendLink = "/belajar";
+  let recommendBtnText = "Mulai Belajar Sekarang";
+  let showDiagnosticPrompt = !progress.diagnosticCompleted;
 
-  const topMistakes = Object.entries(mistakesByTopic)
-    .sort((a, b) => b[1].count - a[1].count)
-    .slice(0, 3);
+  if (showDiagnosticPrompt) {
+    recommendTitle = "Lakukan Tes Diagnostik";
+    recommendText = "Ikuti tes diagnostik awal agar kami bisa menyesuaikan rekomendasi belajar khusus untukmu.";
+    recommendLink = "/diagnostik";
+    recommendBtnText = "Ikuti Tes Diagnostik";
+  } else if (progress.diagnosticResult && progress.diagnosticResult.prioritizedTopics.length > 0) {
+    // Find the first topic from prioritized topics that hasn't been fully completed
+    const priorityTopicTitle = progress.diagnosticResult.prioritizedTopics[0];
+    recommendText = `Berdasarkan tes terakhir, kamu perlu memperkuat materi ${priorityTopicTitle}.`;
+    
+    // Find matching topic in TOPICS to get the link
+    let foundId = '';
+    for (const sub of Object.keys(TOPICS)) {
+      const found = TOPICS[sub].find(t => t.title === priorityTopicTitle || t.topic === priorityTopicTitle);
+      if (found) {
+        foundId = found.id;
+        break;
+      }
+    }
+    
+    if (foundId) {
+      recommendLink = `/belajar/materi/${foundId}`;
+      recommendBtnText = `Pelajari Materi`;
+    }
+  } else if ((progress.mistakes || []).length > 0) {
+    // Group mistakes by topic for recommendations (fallback if no specific diagnostic priorities)
+    const mistakesByTopic = (progress.mistakes || []).reduce((acc, m) => {
+      if (!acc[m.topicName]) {
+        acc[m.topicName] = { lessonId: m.lessonId, count: 0 };
+      }
+      acc[m.topicName].count += 1;
+      return acc;
+    }, {} as Record<string, { lessonId: string, count: number }>);
+
+    const topMistakes = Object.entries(mistakesByTopic)
+      .sort((a, b) => b[1].count - a[1].count);
+
+    if (topMistakes.length > 0) {
+      recommendText = `Kamu sering keliru di materi ${topMistakes[0][0]}. Sebaiknya ulangi materi ini.`;
+      recommendLink = `/belajar/materi/${topMistakes[0][1].lessonId}`;
+      recommendBtnText = "Ulangi Materi";
+    }
+  }
 
   return (
     <div className="flex-1 overflow-y-auto pb-24 md:pb-8">
@@ -70,10 +109,10 @@ export default function HariIni() {
               </div>
 
               <Link
-                href="/belajar/sesi/baru"
+                href={recommendLink}
                 className="flex items-center justify-center gap-2 w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-blue-500/20"
               >
-                Mulai Belajar Sekarang
+                {recommendBtnText}
                 <ChevronRight className="w-5 h-5" />
               </Link>
             </section>
@@ -82,35 +121,24 @@ export default function HariIni() {
             <section className="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-sm">
               <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <Target className="w-4 h-4 text-blue-500" />
-                Riwayat Kesalahan & Rekomendasi
+                {recommendTitle}
               </h2>
-              {topMistakes.length > 0 ? (
-                <div className="space-y-3">
-                  {topMistakes.map(([topic, data]) => (
-                    <Link key={topic} href={`/belajar/materi/${data.lessonId}`} className="flex items-start p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                      <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0">
-                        <Target className="w-4 h-4" />
-                      </div>
-                      <div className="ml-3 flex-1">
-                        <h3 className="font-bold text-sky-900 text-sm">{topic}</h3>
-                        <p className="text-xs text-sky-800 mt-0.5 leading-relaxed">Sering keliru di materi ini ({data.count} kesalahan). Coba ulangi.</p>
-                      </div>
-                    </Link>
-                  ))}
+              
+              <div className="flex items-start p-4 bg-white rounded-xl border border-slate-200">
+                <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  {showDiagnosticPrompt ? <FileEdit className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
                 </div>
-              ) : (
-                <div className="text-center p-6 bg-white rounded-xl border border-slate-200">
-                  <AlertCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500 font-medium">Belajar atau latihan dulu untuk melihat bagian yang perlu diperbaiki.</p>
+                <div className="ml-4 flex-1">
+                  <p className="text-sm text-slate-700 font-medium leading-relaxed">{recommendText}</p>
                 </div>
-              )}
+              </div>
             </section>
           </div>
           
           <div className="lg:col-span-4 space-y-6">
             {/* Next Schedule Section */}
             <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-              <h2 className="text-sm font-bold text-slate-500 uppercase mb-4">Jadwal Berikutnya</h2>
+              <h2 className="text-sm font-bold text-slate-500 uppercase mb-4">Fokus Mata Pelajaran</h2>
               <div className="relative space-y-6">
                 <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-slate-100"></div>
                 <div className="relative flex gap-4">
@@ -118,32 +146,39 @@ export default function HariIni() {
                     <div className="w-2 h-2 bg-white rounded-full"></div>
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-900">Bahasa Indonesia (Wajib)</p>
-                    <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> 15 menit
-                    </p>
+                    <p className="text-sm font-bold text-slate-900">Bahasa Indonesia</p>
+                    <p className="text-xs text-slate-500 mt-1">Wajib</p>
                   </div>
                 </div>
-                {profile.additionalSubjects.length > 0 && (
-                  <div className="relative flex gap-4 opacity-50">
-                    <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center shrink-0 z-10">
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                {profile.additionalSubjects.map((subjectId, idx) => {
+                  const subjectName = SUBJECTS.find(s => s.id === subjectId)?.name || subjectId;
+                  return (
+                    <div key={subjectId} className="relative flex gap-4">
+                      <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center shrink-0 z-10">
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{subjectName}</p>
+                        <p className="text-xs text-slate-500 mt-1">Pilihan {idx + 1}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{profile.additionalSubjects[0]} (Pilihan)</p>
-                      <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> 15 menit
-                      </p>
-                    </div>
-                  </div>
-                )}
+                  );
+                })}
               </div>
             </section>
 
             <div className="bg-emerald-600 p-6 rounded-2xl text-white shadow-lg shadow-emerald-600/10">
               <p className="text-xs font-medium text-emerald-100 mb-1">Statistik Belajar</p>
               <p className="text-2xl font-bold">{progress.streakDays} Hari Berturut-turut</p>
-              <p className="text-[10px] mt-2 opacity-80 uppercase tracking-widest font-bold">🔥🔥 Pertahankan Semangatmu!</p>
+              {progress.streakDays > 0 ? (
+                <p className="text-[10px] mt-2 opacity-80 uppercase tracking-widest font-bold flex items-center gap-1">
+                  <span>🔥</span> Pertahankan Semangatmu!
+                </p>
+              ) : (
+                <p className="text-[10px] mt-2 opacity-80 uppercase font-bold flex items-center gap-1">
+                  Selesaikan satu materi untuk memulai streak.
+                </p>
+              )}
             </div>
           </div>
         </div>

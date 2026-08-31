@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { TRYOUTS } from '@/lib/data';
+import { TRYOUTS, SUBJECTS, Question } from '@/lib/data';
+import { useAppStore } from '@/lib/store';
 import { CheckCircle2, AlertCircle, Home } from 'lucide-react';
 import Link from 'next/link';
 
@@ -10,10 +11,19 @@ export default function TryoutHasil() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const { profile } = useAppStore();
   
   const [result, setResult] = useState<any>(null);
   
-  const tryout = useMemo(() => TRYOUTS.find(t => t.id === id), [id]);
+  const tryoutBase = useMemo(() => TRYOUTS.find(t => t.id === id), [id]);
+
+  const tryoutQuestions = useMemo(() => {
+    if (!tryoutBase || !profile) return [];
+    const requiredSubjectIds = SUBJECTS.filter(s => s.type === 'wajib').map(s => s.id);
+    const selectedSubjectIds = profile.additionalSubjects || [];
+    const validSubjectIds = [...requiredSubjectIds, ...selectedSubjectIds];
+    return tryoutBase.questions.filter(q => validSubjectIds.includes(q.subjectId));
+  }, [tryoutBase, profile]);
 
   useEffect(() => {
     const storedResult = localStorage.getItem(`temp_hasil_${id}`);
@@ -25,7 +35,7 @@ export default function TryoutHasil() {
     }
   }, [id, router]);
 
-  if (!result || !tryout) {
+  if (!result || !tryoutBase || !profile) {
     return <div className="p-8 text-center">Memuat hasil...</div>;
   }
 
@@ -50,7 +60,7 @@ export default function TryoutHasil() {
         <section className="space-y-4">
           <h2 className="text-sm font-bold tracking-wider text-slate-500 uppercase">Pembahasan</h2>
           <div className="space-y-4">
-            {tryout.questions.map((q: any, idx: number) => {
+            {tryoutQuestions.map((q: Question, idx: number) => {
               const userAnswer = result.answers[idx];
               const isCorrect = userAnswer === q.correctIndex;
               
@@ -61,7 +71,7 @@ export default function TryoutHasil() {
                       {idx + 1}
                     </span>
                     <span className="text-xs font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded uppercase tracking-wider">
-                      {q.subject}
+                      {q.subjectName}
                     </span>
                     {isCorrect ? (
                       <span className="ml-auto flex items-center gap-1 text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
@@ -73,6 +83,14 @@ export default function TryoutHasil() {
                       </span>
                     )}
                   </div>
+
+                  {q.stimulusType === 'text' && q.stimulus && (
+                    <div className="mb-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                      <p className="text-slate-700 leading-relaxed text-sm">
+                        {q.stimulus}
+                      </p>
+                    </div>
+                  )}
                   
                   <p className="text-slate-900 font-medium mb-4">{q.question}</p>
                   
