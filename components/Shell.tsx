@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAppStore } from '@/lib/store';
+import { calculateDaysRemaining } from '@/lib/utils';
 import Onboarding from './Onboarding';
 import { BookOpen, Calendar, Home, TrendingUp, Settings } from 'lucide-react';
 import Link from 'next/link';
@@ -32,6 +33,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     { name: 'Tryout', href: '/tryout', icon: Calendar },
     { name: 'Progres', href: '/progres', icon: TrendingUp },
   ];
+
+  const daysRemaining = calculateDaysRemaining(profile.targetDate);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900">
@@ -73,10 +76,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           <div className="bg-slate-100 rounded-xl p-4">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Target TKA</p>
             <p className="text-sm font-semibold text-slate-900">
-              {profile.targetDate ? `${Math.max(0, Math.ceil((new Date(profile.targetDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24)))} Hari Lagi` : 'Belum diatur'}
+              {daysRemaining !== null ? `${daysRemaining} Hari Lagi` : 'Belum diatur'}
             </p>
             <div className="w-full bg-slate-300 h-1.5 rounded-full mt-2 overflow-hidden">
-              <div className="bg-blue-500 h-full" style={{ width: '65%' }}></div>
+              <div className="bg-blue-500 h-full" style={{ width: daysRemaining !== null && daysRemaining <= 90 ? `${Math.max(10, 100 - (daysRemaining/90)*100)}%` : '5%' }}></div>
             </div>
           </div>
         </div>

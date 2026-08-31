@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAppStore, UserProfile } from '@/lib/store';
 import { ChevronRight, Check } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const ADDITIONAL_SUBJECTS = [
   'Matematika Tingkat Lanjut',
@@ -23,20 +24,30 @@ export default function Onboarding() {
   const [targetDate, setTargetDate] = useState<string>('');
   
   const setProfile = useAppStore((state) => state.setProfile);
+  const completeDiagnostic = useAppStore((state) => state.completeDiagnostic);
+  const router = useRouter();
 
   const handleNext = () => {
     if (step < 5) {
       setStep(step + 1);
+    }
+  };
+
+  const finishOnboarding = (skipDiagnostic: boolean) => {
+    const profile: UserProfile = {
+      name,
+      additionalSubjects: selectedSubjects,
+      dailyStudyTime: dailyTime,
+      targetDate,
+      onboardingCompleted: true,
+    };
+    setProfile(profile);
+
+    if (skipDiagnostic) {
+      completeDiagnostic();
+      router.push('/');
     } else {
-      // Complete onboarding
-      const profile: UserProfile = {
-        name,
-        additionalSubjects: selectedSubjects,
-        dailyStudyTime: dailyTime,
-        targetDate,
-        onboardingCompleted: true,
-      };
-      setProfile(profile);
+      router.push('/diagnostik');
     }
   };
 
@@ -178,13 +189,13 @@ export default function Onboarding() {
             </p>
             <div className="pt-6 space-y-4">
               <button
-                onClick={handleNext}
+                onClick={() => finishOnboarding(false)}
                 className="w-full bg-blue-500 text-white p-4 rounded-xl font-bold flex items-center justify-center transition-all shadow-lg shadow-blue-500/20 hover:bg-blue-600"
               >
                 Mulai Tes Diagnostik
               </button>
               <button
-                onClick={handleNext}
+                onClick={() => finishOnboarding(true)}
                 className="w-full bg-white text-slate-700 p-4 rounded-xl border border-slate-300 font-bold flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm"
               >
                 Lewati, langsung belajar

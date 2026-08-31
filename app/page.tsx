@@ -1,8 +1,8 @@
 'use client';
 
 import { useAppStore } from '@/lib/store';
-import { differenceInDays, parseISO } from 'date-fns';
-import { ChevronRight, Target, Clock, BookOpen } from 'lucide-react';
+import { calculateDaysRemaining } from '@/lib/utils';
+import { ChevronRight, Target, Clock, BookOpen, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function HariIni() {
@@ -10,17 +10,25 @@ export default function HariIni() {
 
   if (!profile) return null;
 
-  let daysRemaining = 0;
-  if (profile.targetDate) {
-    const target = parseISO(profile.targetDate);
-    daysRemaining = differenceInDays(target, new Date());
-    if (daysRemaining < 0) daysRemaining = 0;
-  }
+  const daysRemaining = calculateDaysRemaining(profile.targetDate) || 0;
 
   const progressPercentage = Math.min(
     Math.round((progress.dailyProgressMinutes / profile.dailyStudyTime) * 100),
     100
   );
+
+  // Group mistakes by topic for recommendations
+  const mistakesByTopic = (progress.mistakes || []).reduce((acc, m) => {
+    if (!acc[m.topicName]) {
+      acc[m.topicName] = { lessonId: m.lessonId, count: 0 };
+    }
+    acc[m.topicName].count += 1;
+    return acc;
+  }, {} as Record<string, { lessonId: string, count: number }>);
+
+  const topMistakes = Object.entries(mistakesByTopic)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 3);
 
   return (
     <div className="flex-1 overflow-y-auto pb-24 md:pb-8">
@@ -76,26 +84,26 @@ export default function HariIni() {
                 <Target className="w-4 h-4 text-blue-500" />
                 Riwayat Kesalahan & Rekomendasi
               </h2>
-              <div className="space-y-3">
-                <Link href="/belajar/materi/matematika-peluang" className="flex items-start p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                  <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0">
-                    <Target className="w-4 h-4" />
-                  </div>
-                  <div className="ml-3 flex-1">
-                    <h3 className="font-bold text-sky-900 text-sm">Matematika: Peluang</h3>
-                    <p className="text-xs text-sky-800 mt-0.5 leading-relaxed">Sering keliru di konsep kombinatorika. Coba ulangi.</p>
-                  </div>
-                </Link>
-                <Link href="/belajar/materi/indonesia-paragraf" className="flex items-start p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                  <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0">
-                    <BookOpen className="w-4 h-4" />
-                  </div>
-                  <div className="ml-3 flex-1">
-                    <h3 className="font-bold text-sky-900 text-sm">B. Indonesia: Ide Pokok</h3>
-                    <p className="text-xs text-sky-800 mt-0.5 leading-relaxed">Coba ulangi latihan menentukan kalimat utama.</p>
-                  </div>
-                </Link>
-              </div>
+              {topMistakes.length > 0 ? (
+                <div className="space-y-3">
+                  {topMistakes.map(([topic, data]) => (
+                    <Link key={topic} href={`/belajar/materi/${data.lessonId}`} className="flex items-start p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0">
+                        <Target className="w-4 h-4" />
+                      </div>
+                      <div className="ml-3 flex-1">
+                        <h3 className="font-bold text-sky-900 text-sm">{topic}</h3>
+                        <p className="text-xs text-sky-800 mt-0.5 leading-relaxed">Sering keliru di materi ini ({data.count} kesalahan). Coba ulangi.</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-6 bg-white rounded-xl border border-slate-200">
+                  <AlertCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500 font-medium">Belajar atau latihan dulu untuk melihat bagian yang perlu diperbaiki.</p>
+                </div>
+              )}
             </section>
           </div>
           
@@ -110,7 +118,7 @@ export default function HariIni() {
                     <div className="w-2 h-2 bg-white rounded-full"></div>
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-900">Bahasa Inggris (Wajib)</p>
+                    <p className="text-sm font-bold text-slate-900">Bahasa Indonesia (Wajib)</p>
                     <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                       <Clock className="w-3 h-3" /> 15 menit
                     </p>
@@ -134,7 +142,7 @@ export default function HariIni() {
 
             <div className="bg-emerald-600 p-6 rounded-2xl text-white shadow-lg shadow-emerald-600/10">
               <p className="text-xs font-medium text-emerald-100 mb-1">Statistik Belajar</p>
-              <p className="text-2xl font-bold">7 Hari Berturut-turut</p>
+              <p className="text-2xl font-bold">{progress.streakDays} Hari Berturut-turut</p>
               <p className="text-[10px] mt-2 opacity-80 uppercase tracking-widest font-bold">🔥🔥 Pertahankan Semangatmu!</p>
             </div>
           </div>

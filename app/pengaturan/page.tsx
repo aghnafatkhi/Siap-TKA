@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/lib/store';
-import { Settings, LogOut, Database, CheckCircle2 } from 'lucide-react';
+import { Settings, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function PengaturanPage() {
@@ -11,8 +11,7 @@ export default function PengaturanPage() {
   if (!profile) return null;
 
   const handleReset = () => {
-    if (confirm('Yakin ingin mereset data?')) {
-      // Create a copy but with onboardingCompleted = false
+    if (confirm('Yakin ingin mereset data? Ini akan mengulangi pengaturan awal.')) {
       setProfile({
         ...profile,
         name: '',
@@ -59,39 +58,6 @@ export default function PengaturanPage() {
                 <LogOut className="w-5 h-5" />
                 Ulangi Pengaturan Awal
               </button>
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-sm font-bold tracking-wider text-slate-500 uppercase">Panel Admin (Demo)</h2>
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-            <p className="text-slate-500 text-sm font-medium">Panel sederhana untuk mengelola status validasi materi dan soal TKA. (Hanya terlihat oleh admin)</p>
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-                    <Database className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900">Bank Soal Internal</p>
-                    <p className="text-sm text-slate-500">1250 soal tersedia</p>
-                  </div>
-                </div>
-                <button className="text-indigo-600 font-bold text-sm bg-indigo-50 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors">Kelola</button>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900">Validasi Materi</p>
-                    <p className="text-sm text-slate-500">12 materi menunggu review</p>
-                  </div>
-                </div>
-                <button className="text-emerald-600 font-bold text-sm bg-emerald-50 px-4 py-2 rounded-lg hover:bg-emerald-100 transition-colors">Review</button>
-              </div>
             </div>
           </div>
         </section>
